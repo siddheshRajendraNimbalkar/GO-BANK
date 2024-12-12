@@ -9,8 +9,8 @@ import (
 )
 
 func createTransfersTest(t *testing.T) Transfer {
-	account1 := createRandomAccountt(t)
-	account2 := createRandomAccountt(t)
+	account1 := createRandomAccount(t)
+	account2 := createRandomAccount(t)
 
 	arg := CreateTransfersParams{
 		FromAccID: account1.ID,

@@ -9,7 +9,7 @@ import (
 )
 
 func createRandomEntry(t *testing.T) Entry {
-	account := createRandomAccountt(t)
+	account := createRandomAccount(t)
 	arg := CreateEntriesParams{
 		AccountID: account.ID,
 		Amount:    int64(util.GenerateRandomBalance(0, float64(account.Balance))),
