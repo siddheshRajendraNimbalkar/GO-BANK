@@ -56,6 +56,8 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
+var txKey = struct{}{}
+
 // TransferTx performs a money transfer from one account to another
 // It creates a transfer record, adds account entries, and updates accounts' balance within a single database transaction
 func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
@@ -64,6 +66,36 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
 
+		txName := ctx.Value(txKey)
+		fmt.Println(txName, "Start transfer transaction")
+
+		// Lock accounts in a consistent order to avoid deadlocks
+		if arg.FromAccountID < arg.ToAccountID {
+			_, err = q.GetAccountForUpdate(ctx, arg.FromAccountID)
+			if err != nil {
+				fmt.Println(txName, "Error locking from account:", err)
+				return err
+			}
+
+			_, err = q.GetAccountForUpdate(ctx, arg.ToAccountID)
+			if err != nil {
+				fmt.Println(txName, "Error locking to account:", err)
+				return err
+			}
+		} else {
+			_, err = q.GetAccountForUpdate(ctx, arg.ToAccountID)
+			if err != nil {
+				fmt.Println(txName, "Error locking to account:", err)
+				return err
+			}
+
+			_, err = q.GetAccountForUpdate(ctx, arg.FromAccountID)
+			if err != nil {
+				fmt.Println(txName, "Error locking from account:", err)
+				return err
+			}
+		}
+
 		// Create a transfer record
 		result.Transfer, err = q.CreateTransfers(ctx, CreateTransfersParams{
 			FromAccID: arg.FromAccountID,
@@ -71,29 +103,53 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 			Amount:    arg.Amount,
 		})
 		if err != nil {
+			fmt.Println(txName, "Error creating transfer:", err)
 			return err
 		}
+		fmt.Println(txName, "Created transfer with ID:", result.Transfer.ID)
 
 		// Create entries for "from" account
 		result.FromEntry, err = q.CreateEntries(ctx, CreateEntriesParams{
 			AccountID: arg.FromAccountID,
-			Amount:    -arg.Amount, // Negative amount for the sender
+			Amount:    -arg.Amount,
 		})
 		if err != nil {
+			fmt.Println(txName, "Error creating entry for from account:", err)
 			return err
 		}
+		fmt.Println(txName, "Created entry 1 for from account:", arg.FromAccountID)
 
 		// Create entries for "to" account
 		result.ToEntry, err = q.CreateEntries(ctx, CreateEntriesParams{
 			AccountID: arg.ToAccountID,
-			Amount:    arg.Amount, // Positive amount for the receiver
+			Amount:    arg.Amount,
 		})
 		if err != nil {
+			fmt.Println(txName, "Error creating entry for to account:", err)
 			return err
 		}
+		fmt.Println(txName, "Created entry 2 for to account:", arg.ToAccountID)
 
-		// Update the balance of "from" account
-		//TODO:::::::
+		// Update balances
+		_, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID:      arg.FromAccountID,
+			Account: -arg.Amount,
+		})
+		if err != nil {
+			fmt.Println(txName, "Error updating balance for from account:", err)
+			return err
+		}
+		fmt.Println(txName, "Updated balance for from account:", arg.FromAccountID)
+
+		_, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID:      arg.ToAccountID,
+			Account: arg.Amount,
+		})
+		if err != nil {
+			fmt.Println(txName, "Error updating balance for to account:", err)
+			return err
+		}
+		fmt.Println(txName, "Updated balance for to account:", arg.ToAccountID)
 
 		return nil
 	})
