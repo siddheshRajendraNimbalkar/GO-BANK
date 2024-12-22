@@ -7,16 +7,17 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/siddheshRajendraNimbalkar/GO-BANK/api"
 	db "github.com/siddheshRajendraNimbalkar/GO-BANK/db/sqlc"
-)
-
-const (
-	dbDriv   = "postgres"
-	dbSource = "postgresql://root:password@localhost:5432/simple_bank?sslmode=disable"
-	addr     = "0.0.0.0:8080"
+	"github.com/siddheshRajendraNimbalkar/GO-BANK/util"
 )
 
 func main() {
-	conn, err := sql.Open(dbDriv, dbSource)
+	config, err := util.LoadConfig(".")
+
+	if err != nil {
+		log.Fatal("[Config]::error in env", err)
+	}
+
+	conn, err := sql.Open(config.DBDriver, config.DBSource)
 
 	if err != nil {
 		log.Fatal("[ERROR IN Main_Test]::While connecting db", err)
@@ -25,7 +26,7 @@ func main() {
 	store := db.NewStore(conn)
 	server := api.NewServer(store)
 
-	err = server.Start(addr)
+	err = server.Start(config.Addr)
 
 	if err != nil {
 		log.Fatal("[ERROR OCCURE WHILE CONNECTING THE PORT]::", err.Error())

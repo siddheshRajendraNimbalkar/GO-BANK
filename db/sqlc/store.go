@@ -151,6 +151,16 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		}
 		fmt.Println(txName, "Updated balance for to account:", arg.ToAccountID)
 
+		result.FromAccount, err = q.GetAccount(ctx, arg.FromAccountID)
+		if err != nil {
+			return err
+		}
+
+		result.ToAccount, err = q.GetAccount(ctx, arg.ToAccountID)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
 
