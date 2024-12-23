@@ -63,6 +63,7 @@ var txKey = struct{}{}
 func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
+	// Start the transaction
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
 
@@ -94,6 +95,18 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 				fmt.Println(txName, "Error locking from account:", err)
 				return err
 			}
+		}
+
+		// Check if the "from" account has sufficient balance
+		fromAccount, err := q.GetAccount(ctx, arg.FromAccountID)
+		if err != nil {
+			fmt.Println(txName, "Error getting from account:", err)
+			return err
+		}
+		if fromAccount.Balance < arg.Amount {
+			errMsg := fmt.Sprintf("insufficient balance in account %d", arg.FromAccountID)
+			fmt.Println(txName, errMsg)
+			return fmt.Errorf(errMsg) // Return error if balance is insufficient
 		}
 
 		// Create a transfer record
@@ -151,6 +164,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		}
 		fmt.Println(txName, "Updated balance for to account:", arg.ToAccountID)
 
+		// Get the updated account details
 		result.FromAccount, err = q.GetAccount(ctx, arg.FromAccountID)
 		if err != nil {
 			return err

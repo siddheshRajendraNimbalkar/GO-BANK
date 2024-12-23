@@ -21,19 +21,33 @@ func (server *Server) createAcount(ctx *gin.Context) {
 		return
 	}
 
+	user, err := server.store.GetUser(ctx, req.Owner)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "User Name Error",
+			"error":   err.Error(),
+		})
+		return
+	}
+
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    user.Username,
 		Currency: req.Currency,
 		Balance:  0,
 	}
 
 	account, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Account Not Created",
+			"error":   err.Error(),
+		})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
+		"message": "User Created",
 		"account": account,
 	})
 	return
@@ -53,11 +67,11 @@ func (server *Server) GetAcount(ctx *gin.Context) {
 	if err != nil {
 		// Handle the case where the account is not found
 		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Account not found", "error": err.Error()})
 			return
 		}
 		// Handle other potential errors
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch account"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch account", "error": err.Error()})
 		return
 	}
 
@@ -106,14 +120,14 @@ func (server *Server) DeleteAccounts(ctx *gin.Context) {
 	accountID, err := strconv.Atoi(id)
 
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid account ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid account ID", "error": err.Error()})
 		return
 	}
 
 	err = server.store.DeleteAccount(ctx, int64(accountID))
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete account"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete account", "error": err.Error()})
 		return
 	}
 
@@ -131,7 +145,7 @@ func (server *Server) UpdateAccount(ctx *gin.Context) {
 	accountID, err := strconv.Atoi(id)
 
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid account ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid account ID", "error": err.Error()})
 		return
 	}
 
