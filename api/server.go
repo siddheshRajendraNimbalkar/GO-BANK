@@ -1,16 +1,21 @@
 package api
 
 import (
+	"github.com/siddheshRajendraNimbalkar/GO-BANK/token"
+	"github.com/siddheshRajendraNimbalkar/GO-BANK/util"
+
 	"github.com/gin-gonic/gin"
 	db "github.com/siddheshRajendraNimbalkar/GO-BANK/db/sqlc"
 )
 
 type Server struct {
-	store  *db.Store
-	router *gin.Engine
+	config     util.Config
+	store      *db.Store
+	router     *gin.Engine
+	tokenMaker token.Maker
 }
 
-func NewServer(store *db.Store) *Server {
+func NewServer(config util.Config, store *db.Store) *Server {
 	server := &Server{store: store}
 	router := gin.Default()
 
@@ -30,6 +35,7 @@ func NewServer(store *db.Store) *Server {
 	router.GET("/user/:userName", server.getUser)
 
 	server.router = router
+	server.config = config
 	return server
 }
 

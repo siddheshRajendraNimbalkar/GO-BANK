@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/siddheshRajendraNimbalkar/GO-BANK/db/sqlc"
@@ -58,7 +57,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 	}
 
 	// Generate JWT token
-	maker, err := token.NewPasetoMaker("12345678901234567890123456789012")
+	maker, err := token.NewPasetoMaker(server.config.Secret)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Error creating token maker",
@@ -67,7 +66,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	tokenStr, err := maker.CreateToken(user.Username, time.Hour*24*7)
+	tokenStr, err := maker.CreateToken(user.Username, server.config.JwtDuration)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Error creating token",
@@ -145,7 +144,7 @@ func (server *Server) compareUser(ctx *gin.Context) {
 		return
 	}
 
-	maker, err := token.NewPasetoMaker("12345678901234567890123456789012")
+	maker, err := token.NewPasetoMaker(server.config.Secret)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Error creating token maker",
@@ -154,7 +153,7 @@ func (server *Server) compareUser(ctx *gin.Context) {
 		return
 	}
 
-	tokenStr, err := maker.CreateToken(user.Username, time.Hour*24*7)
+	tokenStr, err := maker.CreateToken(user.Username, server.config.JwtDuration)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
