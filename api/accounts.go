@@ -2,15 +2,16 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/siddheshRajendraNimbalkar/GO-BANK/db/sqlc"
+	"github.com/siddheshRajendraNimbalkar/GO-BANK/token"
 )
 
 type CreateAccountParams struct {
-	Owner    string `db:"owner" binding:"required"`
 	Currency string `db:"currency" binding:"required,oneof=INR"`
 }
 
@@ -21,7 +22,20 @@ func (server *Server) createAcount(ctx *gin.Context) {
 		return
 	}
 
-	user, err := server.store.GetUser(ctx, req.Owner)
+	payload, exist := ctx.Get("user_payload")
+	if !exist {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Username not found in context"})
+		return
+	}
+
+	// Assert the payload to the correct type (assuming it's *Payload)
+	userPayload, ok := payload.(*token.Payload)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to cast user payload"})
+		return
+	}
+
+	user, err := server.store.GetUser(ctx, userPayload.Username)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -50,7 +64,6 @@ func (server *Server) createAcount(ctx *gin.Context) {
 		"message": "User Created",
 		"account": account,
 	})
-	return
 }
 
 func (server *Server) GetAcount(ctx *gin.Context) {
@@ -101,8 +114,21 @@ func (server *Server) listAccounts(ctx *gin.Context) {
 	// Calculate offset for pagination
 	offset := (params.Page - 1) * params.PageSize
 
+	payload, exist := ctx.Get("user_payload")
+	if !exist {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Username not found in context"})
+		return
+	}
+
+	owner, ok := payload.(*token.Payload)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to cast user payload"})
+		return
+	}
+	fmt.Println(owner.Username)
 	// Fetch accounts from the database
 	accounts, err := server.store.ListAccount(ctx, db.ListAccountParams{
+		Owner:  owner.Username,
 		Limit:  int32(params.PageSize),
 		Offset: int32(offset),
 	})
@@ -169,5 +195,4 @@ func (server *Server) UpdateAccount(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusFound, updatedAccount)
-	return
 }
