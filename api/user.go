@@ -2,8 +2,10 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	db "github.com/siddheshRajendraNimbalkar/GO-BANK/db/sqlc"
 	"github.com/siddheshRajendraNimbalkar/GO-BANK/token"
 	"golang.org/x/crypto/bcrypt"
@@ -66,7 +68,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	tokenStr, err := maker.CreateToken(user.Username, server.config.JwtDuration)
+	tokenStr, _, err := maker.CreateToken(user.Username, server.config.JwtDuration)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Error creating token",
@@ -105,6 +107,16 @@ func (server *Server) getUser(ctx *gin.Context) {
 			"CreatedAt": user.CreatedAt,
 		},
 	})
+}
+
+type CreateSessionParams struct {
+	ID           uuid.UUID `db:"id"`
+	Username     string    `db:"username"`
+	RefreshToken string    `db:"refresh_token"`
+	UserAgent    string    `db:"user_agent"`
+	ClientIp     string    `db:"client_ip"`
+	IsBlocked    bool      `db:"is_blocked"`
+	ExpireDate   time.Time `db:"expire_date"`
 }
 
 type SignInUserParams struct {
@@ -153,7 +165,7 @@ func (server *Server) compareUser(ctx *gin.Context) {
 		return
 	}
 
-	tokenStr, err := maker.CreateToken(user.Username, server.config.JwtDuration)
+	tokenStr, _, err := maker.CreateToken(user.Username, server.config.JwtDuration)
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -163,8 +175,41 @@ func (server *Server) compareUser(ctx *gin.Context) {
 		return
 	}
 
+	refesh_token, userPayload, err := server.tokenMaker.CreateToken(user.Username, server.config.SessionDuration)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Error creating refesh token",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	arg := db.CreateSessionParams{
+		ID:           userPayload.ID,
+		Username:     userPayload.Username,
+		RefreshToken: refesh_token,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIp:     ctx.ClientIP(),
+		IsBlocked:    false,
+		ExpireDate:   userPayload.ExpiresAt,
+	}
+
+	session, err := server.store.CreateSession(ctx, arg)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Error while creating sessioin",
+			"error":   err.Error(),
+		})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "User found successfully",
-		"token":   tokenStr,
+		"message":     "User found successfully",
+		"accessToken": tokenStr,
+		"sessionId":   session.ID,
+		"token":       session.RefreshToken,
+		"expireAt":    session.ExpireDate,
 	})
 }

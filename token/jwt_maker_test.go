@@ -21,7 +21,7 @@ func TestJwt(t *testing.T) {
 	duration := time.Hour * 24
 
 	// Generate a token using the maker
-	token, err := maker.CreateToken(username, duration)
+	token, _, err := maker.CreateToken(username, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 

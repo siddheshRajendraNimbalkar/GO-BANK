@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	DBDriver    string        `mapstructure:"DBDRIVE"`
-	DBSource    string        `mapstructure:"DBSOURCE"`
-	Addr        string        `mapstructure:"ADDR"`
-	Secret      string        `mapstructure:"SECRET"`
-	JwtDuration time.Duration `mapstructure:"JWTDURATION"`
+	DBDriver        string        `mapstructure:"DBDRIVE"`
+	DBSource        string        `mapstructure:"DBSOURCE"`
+	Addr            string        `mapstructure:"ADDR"`
+	Secret          string        `mapstructure:"SECRET"`
+	JwtDuration     time.Duration `mapstructure:"JWTDURATION"`
+	SessionDuration time.Duration `mapstructure:"SESSIONDURATION"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
