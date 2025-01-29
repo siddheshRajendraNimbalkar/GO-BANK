@@ -1,4 +1,4 @@
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc Test Server migratedown1 migrateup1
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc Test Server migratedown1 migrateup1 proto
 
 postgres:
 	docker run --name goBank -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=password -d postgres
@@ -29,3 +29,8 @@ Test:
 
 Server: 
 	go run main.go
+
+proto:
+	protoc --proto_path=proto --go_out=pb --go_opt=paths=source_relative \
+    	--go-grpc_out=pb --go-grpc_opt=paths=source_relative \
+    	proto/*.proto

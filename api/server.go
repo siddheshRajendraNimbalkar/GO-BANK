@@ -27,7 +27,7 @@ func NewServer(config util.Config, store *db.Store) *Server {
 
 	//User
 	router.POST("/user/sign-up", server.createUser)
-	router.POST("/user/sign-in", server.compareUser)
+	router.POST("/user/sign-in", server.LoginUser)
 	router.GET("/user/:userName", server.getUser)
 	router.POST("/user/renew", server.renewToken)
 

@@ -124,7 +124,7 @@ type SignInUserParams struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func (server *Server) compareUser(ctx *gin.Context) {
+func (server *Server) LoginUser(ctx *gin.Context) {
 	var req SignInUserParams
 
 	// Validate input
