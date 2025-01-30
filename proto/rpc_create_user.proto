@@ -13,6 +13,6 @@ message CreateUserRequest {
     string password = 4;
 }
 
-message CreatedUserResponse {
+message CreatedUserResponse {  
     User user = 1;
 }
