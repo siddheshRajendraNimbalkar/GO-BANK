@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net"
+	"net/http"
+
+	runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	_ "github.com/lib/pq"
 	db "github.com/siddheshRajendraNimbalkar/GO-BANK/db/sqlc"
@@ -47,6 +51,34 @@ func main() {
 	if err != nil {
 		log.Fatal("[main_grpc]:", err)
 	}
+
+	go func() {
+		server, err := grpcapi.NewGRPCService(config, *store)
+		if err != nil {
+			log.Fatal("cannot create server GATEWAY", err)
+		}
+		grpcMux := runtime.NewServeMux()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		err = pb.RegisterSimpleBankHandlerServer(ctx, grpcMux, server)
+
+		if err != nil {
+			log.Fatal("cannot create server GATEWAY", err)
+		}
+		mux := http.NewServeMux()
+		mux.Handle("/", grpcMux)
+		listener, err := net.Listen("tcp", config.Addr)
+
+		if err != nil {
+			log.Fatal("[Listener error GATEWAY]:", err)
+		}
+		log.Println("Listener GATEWAY", listener.Addr().String())
+
+		err = http.Serve(listener, mux)
+		if err != nil {
+			log.Fatal("[error GATEWAY]:", err)
+		}
+	}()
 
 	pb.RegisterSimpleBankServer(grpcService, server)
 
