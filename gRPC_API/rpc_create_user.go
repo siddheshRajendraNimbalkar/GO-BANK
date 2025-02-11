@@ -13,10 +13,16 @@ import (
 
 func (service GRPCService) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreatedUserResponse, error) {
 
+	if req.GetPassword() == "" || req.GetEmail() == "" || req.GetFullName() == "" || req.Username == "" {
+		return nil, status.Errorf(codes.Internal, "Bad Request Mention Every detals")
+	}
+
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(req.GetPassword()), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "error while hashing password: %s", err)
 	}
+
+	service.extractMetaData(ctx)
 
 	// Prepare user parameters
 	arg := db.CreateUserParams{

@@ -46,12 +46,14 @@ func (service GRPCService) LoginUser(ctx context.Context, req *pb.LoginUserReque
 		return nil, status.Errorf(codes.Internal, "Error creating refesh token %s", err)
 	}
 
+	md := service.extractMetaData(ctx)
+
 	arg := db.CreateSessionParams{
 		ID:           userPayload.ID,
 		Username:     userPayload.Username,
 		RefreshToken: refesh_token,
-		UserAgent:    "",
-		ClientIp:     "",
+		UserAgent:    md.UserAgent,
+		ClientIp:     md.ClientIP,
 		IsBlocked:    false,
 		ExpireDate:   userPayload.ExpiresAt,
 	}
@@ -62,11 +64,6 @@ func (service GRPCService) LoginUser(ctx context.Context, req *pb.LoginUserReque
 
 		return nil, status.Errorf(codes.Internal, "Error while creating sessioin %s", err)
 	}
-
-	// string session_id = 2;
-	// string access_token = 3;
-	// string refresh_token = 4;
-	// google.protobuf.Timestamp token_expireAt = 5;
 
 	loginUserResponce := &pb.LoginUserResponse{
 		User: &pb.User{
